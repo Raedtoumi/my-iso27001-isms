@@ -20,9 +20,6 @@ jobs:
         with:
           python-version: '3.x'
 
-      # Step 3: Install dependencies if your checks have any
-      - name: Install dependencies
-        run: pip install -r requirements.txt  # Or `npm install` etc.
 
       # Step 4: Run the actual policy checks
       - name: Run Policy Checks
