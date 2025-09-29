@@ -2,9 +2,9 @@ name: "Check ISO27001 Policies"
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
 
 jobs:
   policy-audit:
