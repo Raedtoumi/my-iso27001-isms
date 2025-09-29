@@ -31,4 +31,8 @@ This policy applies to all GitHub repositories, workflows, and personnel involve
 Compliance with this policy is monitored through automated Policy as Code checks and regular audits.
 
 ## 5. Review
+<<<<<<< HEAD
 This policy shall be reviewed annually or when significant changes occur.
+=======
+This policy shall be reviewed annually or when significant changes occur.
+>>>>>>> 6c952485be44243c05806d803de698277beb0f2b
