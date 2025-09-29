@@ -1,0 +1,110 @@
+name: ISO 27001 Compliance Check
+
+on:
+  schedule:
+    - cron: '0 8 * * *'  # Daily at 8 AM
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # Manual trigger
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  collect-evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: |
+          pip install PyGithub
+          pip install opa
+          
+      - name: Collect GitHub Evidence
+        run: |
+          python scripts/collect-github-evidence.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Upload Evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-evidence
+          path: evidence/
+          retention-days: 30
+
+  evaluate-policies:
+    runs-on: ubuntu-latest
+    needs: collect-evidence
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Download Evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: compliance-evidence
+          path: evidence/
+          
+      - name: Setup OPA
+        run: |
+          curl -L -o opa https://github.com/open-policy-agent/opa/releases/download/v0.60.0/opa_linux_amd64_static
+          chmod +x opa
+          sudo mv opa /usr/local/bin/
+          
+      - name: Evaluate Organizational Policies
+        run: |
+          echo "Evaluating organizational policies..."
+          opa eval --format pretty \
+            --data policies/organizational/ \
+            --input evidence/github/organizational-evidence.json \
+            data.organizational
+          
+      - name: Evaluate Technological Policies
+        run: |
+          echo "Evaluating technological policies..."
+          opa eval --format pretty \
+            --data policies/technological/ \
+            --input evidence/github/technological-evidence.json \
+            data.technological
+            
+      - name: Run Policy Tests
+        run: |
+          opa test policies/ -v
+          
+      - name: Generate Compliance Report
+        run: |
+          python scripts/generate-compliance-report.py
+          
+      - name: Upload Compliance Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-report
+          path: compliance-report.json
+
+  security-scanning:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: CodeQL Analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript, python
+        
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+        
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
